@@ -24,12 +24,11 @@ namespace de.softwaremess.xmas.api
             log.LogInformation($"Item position {item.Position}");
             log.LogInformation($"Item length {item.Length}");
 
-            // var resultStream = new MemoryStream();
-            // await item.CopyToAsync(resultStream);
-            // resultStream.Position = 0;
+            var resultStream = new MemoryStream();
+            await item.CopyToAsync(resultStream);
+            resultStream.Position = 0;
             
-            return new OkObjectResult($"Item length {item.Length}");
-            //return new FileStreamResult(resultStream, "application/octet-stream");
+            return new FileStreamResult(resultStream, "application/octet-stream");
         }
 
         [FunctionName("SetItem")]
@@ -71,7 +70,7 @@ namespace de.softwaremess.xmas.api
 
         [FunctionName("CreateCalendar")]
         public static async Task<IActionResult> CreateCalendar(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "xmascalendar/calendars/{calendar}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "xmascalendar/calendar/{calendar}")] HttpRequest req,
             string calendar, ILogger log)
         {
             log.LogInformation($"CreateCalendar triggered");
