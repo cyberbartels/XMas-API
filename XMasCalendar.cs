@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -23,11 +24,12 @@ namespace de.softwaremess.xmas.api
             log.LogInformation($"Item position {item.Position}");
             log.LogInformation($"Item length {item.Length}");
 
-            var resultStream = new MemoryStream();
-            await item.CopyToAsync(resultStream);
-            resultStream.Position = 0;
+            // var resultStream = new MemoryStream();
+            // await item.CopyToAsync(resultStream);
+            // resultStream.Position = 0;
             
-            return new FileStreamResult(resultStream, "application/octet-stream");
+            return new OkObjectResult($"Item length {item.Length}");
+            //return new FileStreamResult(resultStream, "application/octet-stream");
         }
 
         [FunctionName("SetItem")]
@@ -36,16 +38,15 @@ namespace de.softwaremess.xmas.api
             [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
             string calendar, int day, ILogger log)
         {
-            await blobContainer.CreateIfNotExistsAsync();
             var blob = blobContainer.GetBlobClient($"{day}");
             if (blob.Exists())
             {
-                return new OkObjectResult($"Already exists");;
+                return new OkObjectResult($"Already exists");
             }
             else
             {
                 await blob.UploadAsync(req.Body, overwrite: false);
-                return new OkObjectResult($"Created");;
+                return new OkObjectResult($"Created");
             }
         }
 
@@ -59,12 +60,38 @@ namespace de.softwaremess.xmas.api
             var blob = blobContainer.GetBlobClient($"{day}");
             if (!blob.Exists())
             {
-                return new OkObjectResult($"Item does not exists");;
+                return new OkObjectResult($"Item does not exists");
             }
             else
             {
                 await blob.UploadAsync(req.Body, overwrite: true);
-                return new OkObjectResult($"Updated");;
+                return new OkObjectResult($"Updated");
+            }
+        }
+
+        [FunctionName("CreateCalendar")]
+        public static async Task<IActionResult> CreateCalendar(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "xmascalendar/calendars/{calendar}")] HttpRequest req,
+            string calendar, ILogger log)
+        {
+            log.LogInformation($"CreateCalendar triggered");
+            var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            log.LogInformation($"connection {connection}");
+            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
+            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
+
+            if (blobContainer.Exists())
+            {
+                return new OkObjectResult($"Calendar {calendar} already exists") ;
+            }
+            else
+            {
+                var options = new Dictionary<string, string>
+                    {
+                        { "Created", DateTime.UtcNow.ToString() }
+                    };
+                await blobContainer.CreateAsync(Azure.Storage.Blobs.Models.PublicAccessType.None, options);
+                return new OkObjectResult($"Created calendar {calendar}");
             }
         }
     }
