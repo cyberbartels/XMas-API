@@ -16,16 +16,25 @@ namespace de.softwaremess.xmas.api
     {
         [FunctionName("GetItem")]
         public static async Task<IActionResult> GetCalendarItem(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "xmascalendar/calendar/{calendar}/item/{day:int}")] HttpRequest req,
-            [Blob("{calendar}/{day}", FileAccess.Read)] Stream item,
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "calendar/{calendar}/item/{day:int}")] HttpRequest req,
+            //[Blob("{calendar}/{day}", FileAccess.Read)] Stream item,
             string calendar, int day, ILogger log)
         {
             log.LogInformation($"C# HTTP trigger GET item processed a request for day {day}.");
-            log.LogInformation($"Item position {item.Position}");
-            log.LogInformation($"Item length {item.Length}");
-
+            var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
+            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
+            if (!blobContainer.Exists())
+            {
+                return new OkObjectResult($"Calendar {calendar} does not exist") ;
+            }
+            BlobClient blob =  blobContainer.GetBlobClient(day.ToString());
+            if(!blob.Exists())
+            {
+                return new OkObjectResult($"Item {day} does not exist") ;
+            }
             var resultStream = new MemoryStream();
-            await item.CopyToAsync(resultStream);
+            blob.DownloadTo(resultStream);
             resultStream.Position = 0;
             
             return new FileStreamResult(resultStream, "application/octet-stream");
@@ -33,7 +42,7 @@ namespace de.softwaremess.xmas.api
 
         [FunctionName("SetItem")]
         public static async Task<IActionResult> SetCalendarItem(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "xmascalendar/calendar/{calendar}/item/{day:int}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}/item/{day:int}")] HttpRequest req,
             [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
             string calendar, int day, ILogger log)
         {
@@ -51,7 +60,7 @@ namespace de.softwaremess.xmas.api
 
         [FunctionName("UpdateItem")]
         public static async Task<IActionResult> UpdateCalendarItem(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "xmascalendar/calendar/{calendar}/item/{day:int}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "calendar/{calendar}/item/{day:int}")] HttpRequest req,
             [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
             string calendar, int day, ILogger log)
         {
@@ -70,12 +79,11 @@ namespace de.softwaremess.xmas.api
 
         [FunctionName("CreateCalendar")]
         public static async Task<IActionResult> CreateCalendar(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "xmascalendar/calendar/{calendar}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}")] HttpRequest req,
             string calendar, ILogger log)
         {
             log.LogInformation($"CreateCalendar triggered");
             var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
-            log.LogInformation($"connection {connection}");
             BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
 
