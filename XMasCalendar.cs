@@ -26,12 +26,12 @@ namespace de.softwaremess.xmas.api
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
             if (!blobContainer.Exists())
             {
-                return new OkObjectResult($"Calendar {calendar} does not exist") ;
+                return new NotFoundObjectResult($"Calendar {calendar} does not exist") ;
             }
             BlobClient blob =  blobContainer.GetBlobClient(day.ToString());
             if(!blob.Exists())
             {
-                return new OkObjectResult($"Item {day} does not exist") ;
+                return new NotFoundObjectResult($"Item {day} does not exist") ;
             }
             var resultStream = new MemoryStream();
             blob.DownloadTo(resultStream);
@@ -43,13 +43,21 @@ namespace de.softwaremess.xmas.api
         [FunctionName("SetItem")]
         public static async Task<IActionResult> SetCalendarItem(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}/item/{day:int}")] HttpRequest req,
-            [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
+           // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
             string calendar, int day, ILogger log)
         {
-            var blob = blobContainer.GetBlobClient($"{day}");
-            if (blob.Exists())
+           log.LogInformation($"SetItem triggered calendar {calendar}, day {day}.");
+            var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
+            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
+            if (!blobContainer.Exists())
             {
-                return new OkObjectResult($"Already exists");
+                return new NotFoundObjectResult($"Calendar {calendar} does not exist") ;
+            }
+            BlobClient blob =  blobContainer.GetBlobClient(day.ToString());
+            if(blob.Exists())
+            {
+                return new BadRequestObjectResult($"Item {day} already exist") ;
             }
             else
             {
@@ -61,14 +69,21 @@ namespace de.softwaremess.xmas.api
         [FunctionName("UpdateItem")]
         public static async Task<IActionResult> UpdateCalendarItem(
             [HttpTrigger(AuthorizationLevel.Function, "put", Route = "calendar/{calendar}/item/{day:int}")] HttpRequest req,
-            [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
+           // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
             string calendar, int day, ILogger log)
         {
-            await blobContainer.CreateIfNotExistsAsync();
-            var blob = blobContainer.GetBlobClient($"{day}");
-            if (!blob.Exists())
+            log.LogInformation($"UpdateItem triggered calendar {calendar}, day {day}.");
+            var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
+            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
+            if (!blobContainer.Exists())
             {
-                return new OkObjectResult($"Item does not exists");
+                return new NotFoundObjectResult($"Calendar {calendar} does not exist") ;
+            }
+            BlobClient blob =  blobContainer.GetBlobClient(day.ToString());
+            if(!blob.Exists())
+            {
+                return new NotFoundObjectResult($"Item {day} does not exist") ;
             }
             else
             {
@@ -89,7 +104,7 @@ namespace de.softwaremess.xmas.api
 
             if (blobContainer.Exists())
             {
-                return new OkObjectResult($"Calendar {calendar} already exists") ;
+                return new BadRequestObjectResult($"Calendar {calendar} already exists") ;
             }
             else
             {
