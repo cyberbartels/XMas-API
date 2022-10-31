@@ -62,7 +62,7 @@ namespace de.softwaremess.xmas.api
             else
             {
                 await blob.UploadAsync(req.Body, overwrite: false);
-                return new OkObjectResult($"Created");
+                return new CreatedResult($"/calendar/{calendar}/item/{day}", day);
             }
         }
 
@@ -113,7 +113,8 @@ namespace de.softwaremess.xmas.api
                         { "Created", DateTime.UtcNow.ToString() }
                     };
                 await blobContainer.CreateAsync(Azure.Storage.Blobs.Models.PublicAccessType.None, options);
-                return new OkObjectResult($"Created calendar {calendar}");
+                //return new OkObjectResult($"Created calendar {calendar}");
+                return new CreatedResult($"/calendar/{calendar}", calendar);
             }
         }
     }
