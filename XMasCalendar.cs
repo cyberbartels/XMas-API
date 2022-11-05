@@ -128,7 +128,8 @@ namespace de.softwaremess.xmas.api
             {
                 var options = new Dictionary<string, string>
                     {
-                        { "Created", DateTime.UtcNow.ToString() }
+                        { "Created", DateTime.UtcNow.ToString() },
+                        { "Owner",  req.Headers["username"]}
                     };
                 await blobContainer.CreateAsync(Azure.Storage.Blobs.Models.PublicAccessType.None, options);
                 //return new OkObjectResult($"Created calendar {calendar}");
