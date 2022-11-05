@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -14,6 +15,8 @@ namespace de.softwaremess.xmas.api
 {
     public static class XMasCalendar
     {
+        private static string connection = Environment.GetEnvironmentVariable("XmasCalendarStorage");
+
         [FunctionName("GetItem")]
         public static async Task<IActionResult> GetCalendarItem(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = "calendar/{calendar}/item/{day:int}")] HttpRequest req,
@@ -21,7 +24,7 @@ namespace de.softwaremess.xmas.api
             string calendar, int day, ILogger log)
         {
             log.LogInformation($"C# HTTP trigger GET item processed a request for day {day}.");
-            var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            
             BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
             if (!blobContainer.Exists())
@@ -46,8 +49,8 @@ namespace de.softwaremess.xmas.api
            // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
             string calendar, int day, ILogger log)
         {
-           log.LogInformation($"SetItem triggered calendar {calendar}, day {day}.");
-            var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            log.LogInformation($"SetItem triggered calendar {calendar}, day {day}.");
+            
             BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
             if (!blobContainer.Exists())
@@ -61,7 +64,22 @@ namespace de.softwaremess.xmas.api
             }
             else
             {
-                await blob.UploadAsync(req.Body, overwrite: false);
+                log.LogInformation($"Request header content-type {req.ContentType}.");
+                var blobHttpHeaders = new BlobHttpHeaders();
+                blobHttpHeaders.ContentType = req.ContentType;      
+                await blob.UploadAsync(req.Body, blobHttpHeaders); //, blobHttpHeaders);
+                try {
+                var tags = new Dictionary<string, string>
+                    {
+                        { "Created", DateTime.UtcNow.ToString() }
+                    };
+                blob.SetTags(tags);  
+                }
+                catch(Exception ex)
+                {
+                    return new OkObjectResult(ex.Message);
+                } 
+
                 return new CreatedResult($"/calendar/{calendar}/item/{day}", day);
             }
         }
@@ -73,7 +91,7 @@ namespace de.softwaremess.xmas.api
             string calendar, int day, ILogger log)
         {
             log.LogInformation($"UpdateItem triggered calendar {calendar}, day {day}.");
-            var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            
             BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
             if (!blobContainer.Exists())
@@ -98,7 +116,7 @@ namespace de.softwaremess.xmas.api
             string calendar, ILogger log)
         {
             log.LogInformation($"CreateCalendar triggered");
-            var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            
             BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
 
