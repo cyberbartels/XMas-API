@@ -53,10 +53,13 @@ namespace de.softwaremess.xmas.api
             
             BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
-            if (!blobContainer.Exists())
+            
+            IActionResult checkResult = CheckCalendarAccess(blobContainer, req);
+            if(checkResult != null)
             {
-                return new NotFoundObjectResult($"Calendar {calendar} does not exist") ;
+                return checkResult;
             }
+
             BlobClient blob =  blobContainer.GetBlobClient(day.ToString());
             if(blob.Exists())
             {
@@ -94,10 +97,13 @@ namespace de.softwaremess.xmas.api
             
             BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
-            if (!blobContainer.Exists())
+            
+            IActionResult checkResult = CheckCalendarAccess(blobContainer, req);
+            if(checkResult != null)
             {
-                return new NotFoundObjectResult($"Calendar {calendar} does not exist") ;
+                return checkResult;
             }
+
             BlobClient blob =  blobContainer.GetBlobClient(day.ToString());
             if(!blob.Exists())
             {
@@ -135,6 +141,26 @@ namespace de.softwaremess.xmas.api
                 //return new OkObjectResult($"Created calendar {calendar}");
                 return new CreatedResult($"/calendar/{calendar}", calendar);
             }
+        }
+
+        private static IActionResult CheckCalendarAccess(BlobContainerClient blobContainer, HttpRequest req)
+        {
+            string username = req.Headers["username"];
+            if(username == null)
+            {
+                return new UnauthorizedResult(); 
+            }
+            if (!blobContainer.Exists())
+            {
+                return new NotFoundObjectResult($"Calendar does not exist") ;
+            }
+            string owner = blobContainer.GetProperties().Value.Metadata["Owner"];
+            if(!owner.Equals(req.Headers["username"]))
+            {
+                return new ObjectResult("Forbidden") {StatusCode = StatusCodes.Status403Forbidden };
+            }
+
+            return null;
         }
     }
 }
