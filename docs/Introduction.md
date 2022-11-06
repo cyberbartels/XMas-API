@@ -1,9 +1,9 @@
 # Introduction
-This projects generates an API toy model. The idea is to create a small REST API and publish it wit an API management. While the API does not check any authorizations other than a global, all purpose key, the API management is endowed with the task to protect the API and to authorize access. The API management uses the global key to access the API, no other entity should call the API directly.
+This projects generates an API toy model. The idea is to create a small REST API and publish it with the help of an API management. While the API does not check any authorizations other than a global all purpose key, the API management is endowed with the task to protect the API and to authorize access. The API management uses the global key to access the API, no other entity should call the API directly.
 ## Technical components
 Azure...
 That said, the API is an Azure function app, the API management the (consumption based) Azure API management (apim). 
-Authorization on a user level is handled by OAuth flows which may be readilly implemented with the help of Azure Active Directory.
+Authorization on a user level is handled by OAuth flows which may be readily implemented with the help of Azure Active Directory.
 ## Azure Active Directory
 Azure Active Directory (AAD) may be used as Identity Provider (IdP).
 ### Register API
