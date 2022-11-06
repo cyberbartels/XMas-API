@@ -123,6 +123,12 @@ namespace de.softwaremess.xmas.api
         {
             log.LogInformation($"CreateCalendar triggered");
             
+            string username = req.Headers["username"];
+            if(username == null)
+            {
+                return new UnauthorizedResult(); 
+            }
+            
             BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
 
