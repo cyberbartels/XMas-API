@@ -163,7 +163,8 @@ namespace de.softwaremess.xmas.api
             string owner = blobContainer.GetProperties().Value.Metadata["Owner"];
             if(!owner.Equals(req.Headers["username"]))
             {
-                return new ObjectResult("Forbidden") {StatusCode = StatusCodes.Status403Forbidden };
+                //No access to calendar. Handle like non existend calendar.
+                return new NotFoundObjectResult($"Calendar does not exist"); //new ObjectResult("Forbidden") {StatusCode = StatusCodes.Status403Forbidden };
             }
 
             return null;
