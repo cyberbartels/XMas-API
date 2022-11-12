@@ -36,11 +36,13 @@ namespace de.softwaremess.xmas.api
             {
                 return new NotFoundObjectResult($"Item {day} does not exist") ;
             }
+            var getBlobPropertiesResult = blob.GetProperties();
+            var contentType = getBlobPropertiesResult.Value.ContentType;
             var resultStream = new MemoryStream();
             blob.DownloadTo(resultStream);
             resultStream.Position = 0;
             
-            return new FileStreamResult(resultStream, "application/octet-stream");
+            return new FileStreamResult(resultStream, contentType);
         }
 
         [FunctionName("SetItem")]
