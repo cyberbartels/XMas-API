@@ -60,6 +60,12 @@ namespace de.softwaremess.xmas.api
                 return checkResult;
             }
 
+            checkResult = CheckContent(req); 
+            if(checkResult != null)
+            {
+                return checkResult;
+            }
+
             BlobClient blob =  blobContainer.GetBlobClient(day.ToString());
             if(blob.Exists())
             {
@@ -99,6 +105,12 @@ namespace de.softwaremess.xmas.api
             BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
             
             IActionResult checkResult = CheckCalendarAccess(blobContainer, req);
+            if(checkResult != null)
+            {
+                return checkResult;
+            }
+
+            checkResult = CheckContent(req); 
             if(checkResult != null)
             {
                 return checkResult;
@@ -149,6 +161,22 @@ namespace de.softwaremess.xmas.api
             }
         }
 
+        private static IActionResult CheckContent(HttpRequest req)
+        {
+            List<String> allowedContentTypes = new List<string> {"image/jpeg", "image/png", "text/plain", "audio/wav", "application/json", "image/jpeg"};
+            var headers = req.Headers;
+            if(!headers.TryGetValue("Content-Type", out var contentType))
+            {
+                return new BadRequestObjectResult("Content type required");
+            }
+
+            if( ! allowedContentTypes.Contains(contentType.ToString().ToLower()) )
+            {
+                return new ObjectResult($"Content type {contentType} not supportet. Supported types: {String.Join(", ", allowedContentTypes)}") {StatusCode = StatusCodes.Status415UnsupportedMediaType}; 
+            }
+            return null;
+        }
+
         private static IActionResult CheckCalendarAccess(BlobContainerClient blobContainer, HttpRequest req)
         {
             string username = req.Headers["username"];
@@ -163,7 +191,7 @@ namespace de.softwaremess.xmas.api
             string owner = blobContainer.GetProperties().Value.Metadata["Owner"];
             if(!owner.Equals(req.Headers["username"]))
             {
-                //No access to calendar. Handle like non existend calendar.
+                //No access to calendar. Handle like non existent calendar.
                 return new NotFoundObjectResult($"Calendar does not exist"); //new ObjectResult("Forbidden") {StatusCode = StatusCodes.Status403Forbidden };
             }
 
