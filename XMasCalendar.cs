@@ -166,10 +166,36 @@ namespace de.softwaremess.xmas.api
         private static IActionResult CheckContent(HttpRequest req)
         {
             List<String> allowedContentTypes = new List<string> {"image/jpeg", "image/png", "text/plain", "audio/wav", "application/json", "image/jpeg"};
+            int contentMaxLength = 1000000;
+            int declaredContentLength = contentMaxLength;
             var headers = req.Headers;
             if(!headers.TryGetValue("Content-Type", out var contentType))
             {
                 return new BadRequestObjectResult("Content type required");
+            }
+
+            if(!headers.TryGetValue("Content-Length", out var contentLength))
+            {
+                return new ObjectResult($"Content length required") {StatusCode = StatusCodes.Status411LengthRequired}; 
+            }
+            
+            try
+            {
+                declaredContentLength = int.Parse(contentLength);
+            }
+            catch(Exception ex)
+            {
+                return new BadRequestObjectResult("Could not parse content length");
+            }
+
+            if( declaredContentLength >= contentMaxLength )
+            {
+                return new ObjectResult($"Declared content length {declaredContentLength} too large. Maximum is {contentMaxLength}") {StatusCode = StatusCodes.Status413PayloadTooLarge}; 
+            }
+
+            if( req.Body.Length >= contentMaxLength)
+             {
+                return new ObjectResult($"Request body length {req.Body.Length} too large. Maximum is {contentMaxLength}") {StatusCode = StatusCodes.Status413PayloadTooLarge}; 
             }
 
             if( ! allowedContentTypes.Contains(contentType.ToString().ToLower()) )
