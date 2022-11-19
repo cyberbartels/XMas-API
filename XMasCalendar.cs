@@ -190,6 +190,92 @@ namespace de.softwaremess.xmas.api
             return null;
         }
 
+        [FunctionName("SetTitle")]
+        public static async Task<IActionResult> SetCalendarTitle(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}/title")] HttpRequest req,
+            // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
+            string calendar, int day, ILogger log)
+        {
+            log.LogInformation($"SetTitle triggered calendar {calendar}.");
+
+            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
+            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
+
+            IActionResult checkResult = CheckCalendarAccess(blobContainer, req);
+            if (checkResult != null)
+            {
+                return checkResult;
+            }
+
+            checkResult = CheckContent(req);
+            if (checkResult != null)
+            {
+                return checkResult;
+            }
+
+            BlobClient blob = blobContainer.GetBlobClient("title");
+            if (blob.Exists())
+            {
+                return new BadRequestObjectResult($"Title already exist");
+            }
+            else
+            {
+                log.LogInformation($"Request header content-type {req.ContentType}.");
+                var blobHttpHeaders = new BlobHttpHeaders();
+                blobHttpHeaders.ContentType = req.ContentType;
+                await blob.UploadAsync(req.Body, blobHttpHeaders); //, blobHttpHeaders);
+                try
+                {
+                    var tags = new Dictionary<string, string>
+                    {
+                        { "Created", DateTime.UtcNow.ToString() }
+                    };
+                    blob.SetTags(tags);
+                }
+                catch (Exception ex)
+                {
+                    return new OkObjectResult(ex.Message);
+                }
+
+                return new CreatedResult($"/calendar/{calendar}/title", "title");
+            }
+        }
+
+        [FunctionName("UpdateTitle")]
+        public static async Task<IActionResult> UpdateCalendarTitle(
+            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "calendar/{calendar}/title")] HttpRequest req,
+            // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
+            string calendar, int day, ILogger log)
+        {
+            log.LogInformation($"UpdateTitle triggered calendar {calendar}.");
+            
+            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
+            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
+
+            IActionResult checkResult = CheckCalendarAccess(blobContainer, req);
+            if (checkResult != null)
+            {
+                return checkResult;
+            }
+
+            checkResult = CheckContent(req);
+            if (checkResult != null)
+            {
+                return checkResult;
+            }
+
+            BlobClient blob = blobContainer.GetBlobClient("title");
+            if (!blob.Exists())
+            {
+                return new NotFoundObjectResult($"Title does not exist");
+            }
+            else
+            {
+                await blob.UploadAsync(req.Body, overwrite: true);
+                return new OkObjectResult($"Updated");
+            }
+        }
+
         private static IActionResult CheckContent(HttpRequest req)
         {
             List<String> allowedContentTypes = new List<string> { "image/jpeg", "image/png", "text/plain", "audio/wav", "application/json", "image/jpeg" };
