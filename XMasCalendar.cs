@@ -194,7 +194,7 @@ namespace de.softwaremess.xmas.api
         public static async Task<IActionResult> SetCalendarTitle(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}/title")] HttpRequest req,
             // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
-            string calendar, int day, ILogger log)
+            string calendar, ILogger log)
         {
             log.LogInformation($"SetTitle triggered calendar {calendar}.");
 
@@ -245,7 +245,7 @@ namespace de.softwaremess.xmas.api
         public static async Task<IActionResult> UpdateCalendarTitle(
             [HttpTrigger(AuthorizationLevel.Function, "put", Route = "calendar/{calendar}/title")] HttpRequest req,
             // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
-            string calendar, int day, ILogger log)
+            string calendar, ILogger log)
         {
             log.LogInformation($"UpdateTitle triggered calendar {calendar}.");
             
