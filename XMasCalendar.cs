@@ -50,6 +50,34 @@ namespace de.softwaremess.xmas.api
             return new FileStreamResult(resultStream, contentType);
         }
 
+         [FunctionName("GetTitle")]
+        public static async Task<IActionResult> GetCalendarTitle(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "calendar/{calendar}/title")] HttpRequest req,
+            //[Blob("{calendar}/{day}", FileAccess.Read)] Stream item,
+            string calendar, ILogger log)
+        {
+            log.LogInformation($"C# HTTP trigger GET title processed a request .");
+
+            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
+            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
+            if (!blobContainer.Exists())
+            {
+                return new NotFoundObjectResult($"Calendar {calendar} does not exist");
+            }
+            BlobClient blob = blobContainer.GetBlobClient("title");
+            if (!blob.Exists())
+            {
+                return new NotFoundObjectResult($"Title does not exist");
+            }
+            var getBlobPropertiesResult = blob.GetProperties();
+            var contentType = getBlobPropertiesResult.Value.ContentType;
+            var resultStream = new MemoryStream();
+            blob.DownloadTo(resultStream);
+            resultStream.Position = 0;
+
+            return new FileStreamResult(resultStream, contentType);
+        }
+
         [FunctionName("SetItem")]
         public static async Task<IActionResult> SetCalendarItem(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}/item/{day:int}")] HttpRequest req,
