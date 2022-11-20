@@ -1,0 +1,522 @@
+{
+	"info": {
+		"_postman_id": "21c8c026-0180-41fe-a6ae-e95d58dcfe7a",
+		"name": "Xmas APIM",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "CreateCalendar",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log(\"Setting random test calendar.\");\r",
+							"pm.collectionVariables.set(\"Test calendar\", pm.collectionVariables.get(\"Test caldendar base\") + \"-\" + pm.variables.replaceIn(\"{{$randomInt}}\"));\r",
+							"console.log(\"Using test calendar \" +  pm.collectionVariables.get(\"Test calendar\"));\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "https://{{API Path}}/calendar/{{Test calendar}}",
+					"protocol": "https",
+					"host": [
+						"{{API Path}}"
+					],
+					"path": [
+						"calendar",
+						"{{Test calendar}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetNonExistendItem",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log(\"GetItem. Using test calendar \" +  pm.collectionVariables.get(\"Test calendar\"));\r",
+							"console.log(\"Setting random item number.\");\r",
+							"pm.collectionVariables.set(\"Test item number\", _.random(1, 24))\r",
+							"console.log(\"Using test item  number \" +  pm.collectionVariables.get(\"Test item number\"));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 404\", function () {\r",
+							"    pm.response.to.have.status(404);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{API Path}}/calendar/{{Test calendar}}/item/{{Test item number}}",
+					"protocol": "https",
+					"host": [
+						"{{API Path}}"
+					],
+					"path": [
+						"calendar",
+						"{{Test calendar}}",
+						"item",
+						"{{Test item number}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SetItem",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log(\"SetItem. Using test calendar \" +  pm.collectionVariables.get(\"Test calendar\"));\r",
+							"console.log(\"Using test item number \" +  pm.collectionVariables.get(\"Test item number\"));\r",
+							"console.log(\"Setting random item.\");\r",
+							"pm.collectionVariables.set(\"Test item\", pm.variables.replaceIn(\"{{$randomCatchPhrase}}\"));\r",
+							"console.log(\"Using test item  \" +  pm.collectionVariables.get(\"Test item\"));\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{{Test item}}"
+				},
+				"url": {
+					"raw": "https://{{API Path}}/calendar/{{Test calendar}}/item/{{Test item number}}",
+					"protocol": "https",
+					"host": [
+						"{{API Path}}"
+					],
+					"path": [
+						"calendar",
+						"{{Test calendar}}",
+						"item",
+						"{{Test item number}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetItem",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log(\"GetItem. Using test calendar \" +  pm.collectionVariables.get(\"Test calendar\"));\r",
+							"console.log(\"Using test item number \" +  pm.collectionVariables.get(\"Test item number\"));\r",
+							"console.log(\"Using test item  \" +  pm.collectionVariables.get(\"Test item\"));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Body is current test item\", function () {\r",
+							"    pm.response.to.have.body(pm.collectionVariables.get(\"Test item\"));\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{API Path}}/calendar/{{Test calendar}}/item/{{Test item number}}",
+					"protocol": "https",
+					"host": [
+						"{{API Path}}"
+					],
+					"path": [
+						"calendar",
+						"{{Test calendar}}",
+						"item",
+						"{{Test item number}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UpdateItem",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log(\"UpdateItem. Using test calendar \" +  pm.collectionVariables.get(\"Test calendar\"));\r",
+							"console.log(\"Using test item number \" +  pm.collectionVariables.get(\"Test item number\"));\r",
+							"console.log(\"Setting random item.\");\r",
+							"pm.collectionVariables.set(\"Test item\", pm.variables.replaceIn(\"{{$randomCatchPhrase}}\"));\r",
+							"console.log(\"Using test item  \" +  pm.collectionVariables.get(\"Test item\"));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{{Test item}}"
+				},
+				"url": {
+					"raw": "https://{{API Path}}/calendar/{{Test calendar}}/item/{{Test item number}}",
+					"protocol": "https",
+					"host": [
+						"{{API Path}}"
+					],
+					"path": [
+						"calendar",
+						"{{Test calendar}}",
+						"item",
+						"{{Test item number}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetItem",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log(\"GetItem. Using test calendar \" +  pm.collectionVariables.get(\"Test calendar\"));\r",
+							"console.log(\"Using test item number \" +  pm.collectionVariables.get(\"Test item number\"));\r",
+							"console.log(\"Using test item  \" +  pm.collectionVariables.get(\"Test item\"));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Body is current test item\", function () {\r",
+							"    pm.response.to.have.body(pm.collectionVariables.get(\"Test item\"));\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{API Path}}/calendar/{{Test calendar}}/item/{{Test item number}}",
+					"protocol": "https",
+					"host": [
+						"{{API Path}}"
+					],
+					"path": [
+						"calendar",
+						"{{Test calendar}}",
+						"item",
+						"{{Test item number}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SetItem png",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log(\"SetItem. Using test calendar \" +  pm.collectionVariables.get(\"Test calendar\"));\r",
+							"console.log(\"Current test item number \" +  pm.collectionVariables.get(\"Test item number\"));\r",
+							"console.log(\"Setting new random item number.\");\r",
+							"let CurrentItemNumber = pm.collectionVariables.get(\"Test item number\");\r",
+							"while(CurrentItemNumber == pm.collectionVariables.get(\"Test item number\"))\r",
+							"{\r",
+							"    console.log(\"New item number equals old item number. Pick again.\");\r",
+							"    pm.collectionVariables.set(\"Test item number\", _.random(1, 24))\r",
+							"}\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "/X:/Users/dev/Downloads/11.png"
+					}
+				},
+				"url": {
+					"raw": "https://{{API Path}}/calendar/{{Test calendar}}/item/{{Test item number}}",
+					"protocol": "https",
+					"host": [
+						"{{API Path}}"
+					],
+					"path": [
+						"calendar",
+						"{{Test calendar}}",
+						"item",
+						"{{Test item number}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetItem png",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"console.log(\"GetItem. Using test calendar \" +  pm.collectionVariables.get(\"Test calendar\"));\r",
+							"console.log(\"Using test item number \" +  pm.collectionVariables.get(\"Test item number\"));\r",
+							"console.log(\"Using test item  \" +  pm.collectionVariables.get(\"Test item\"));"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Body is current test item\", function () {\r",
+							"    pm.response.to.have.body(pm.collectionVariables.get(\"Test item\"));\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{API Path}}/calendar/{{Test calendar}}/item/{{Test item number}}",
+					"protocol": "https",
+					"host": [
+						"{{API Path}}"
+					],
+					"path": [
+						"calendar",
+						"{{Test calendar}}",
+						"item",
+						"{{Test item number}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "oauth2",
+		"oauth2": [
+			{
+				"key": "tokenName",
+				"value": "AAD",
+				"type": "string"
+			},
+			{
+				"key": "audience",
+				"value": {
+					"0e6c0527-3a51-407e-afa2-0900e3ccb408": "e1b86300-b1c4-43a0-9f08-be9b9fb79de8"
+				},
+				"type": "any"
+			},
+			{
+				"key": "challengeAlgorithm",
+				"value": "S256",
+				"type": "string"
+			},
+			{
+				"key": "useBrowser",
+				"value": true,
+				"type": "boolean"
+			},
+			{
+				"key": "state",
+				"value": "123",
+				"type": "string"
+			},
+			{
+				"key": "scope",
+				"value": "api://e1b86300-b1c4-43a0-9f08-be9b9fb79de8/Item.Read api://e1b86300-b1c4-43a0-9f08-be9b9fb79de8/Calender.Create",
+				"type": "string"
+			},
+			{
+				"key": "redirect_uri",
+				"value": "https://oauth.pstmn.io/v1/browser-callback",
+				"type": "string"
+			},
+			{
+				"key": "grant_type",
+				"value": "authorization_code_with_pkce",
+				"type": "string"
+			},
+			{
+				"key": "clientId",
+				"value": "1467be26-283b-4695-87d2-bfcaea4d1657",
+				"type": "string"
+			},
+			{
+				"key": "authUrl",
+				"value": "https://login.microsoftonline.com/0b6961ec-79f9-4028-8f1c-fd86a7b5e520/oauth2/v2.0/authorize",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			},
+			{
+				"key": "client_authentication",
+				"value": "header",
+				"type": "string"
+			},
+			{
+				"key": "accessTokenUrl",
+				"value": "https://login.microsoftonline.com/0b6961ec-79f9-4028-8f1c-fd86a7b5e520/oauth2/v2.0/token",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "API Path",
+			"value": "xmas-apim.azure-api.net/xmas-calendar"
+		},
+		{
+			"key": "Test caldendar base",
+			"value": "test"
+		},
+		{
+			"key": "Test calendar",
+			"value": ""
+		},
+		{
+			"key": "Test item",
+			"value": ""
+		},
+		{
+			"key": "Test item number",
+			"value": ""
+		}
+	]
+}
