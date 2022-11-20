@@ -78,6 +78,34 @@ namespace de.softwaremess.xmas.api
             return new FileStreamResult(resultStream, contentType);
         }
 
+         [FunctionName("GetBackground")]
+        public static async Task<IActionResult> GetCalendarBackground(
+            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "calendar/{calendar}/background")] HttpRequest req,
+            //[Blob("{calendar}/{day}", FileAccess.Read)] Stream item,
+            string calendar, ILogger log)
+        {
+            log.LogInformation($"C# HTTP trigger GET background processed a request .");
+
+            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
+            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
+            if (!blobContainer.Exists())
+            {
+                return new NotFoundObjectResult($"Calendar {calendar} does not exist");
+            }
+            BlobClient blob = blobContainer.GetBlobClient("background");
+            if (!blob.Exists())
+            {
+                return new NotFoundObjectResult($"Background does not exist");
+            }
+            var getBlobPropertiesResult = blob.GetProperties();
+            var contentType = getBlobPropertiesResult.Value.ContentType;
+            var resultStream = new MemoryStream();
+            blob.DownloadTo(resultStream);
+            resultStream.Position = 0;
+
+            return new FileStreamResult(resultStream, contentType);
+        }
+
         [FunctionName("SetItem")]
         public static async Task<IActionResult> SetCalendarItem(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}/item/{day:int}")] HttpRequest req,
@@ -86,53 +114,13 @@ namespace de.softwaremess.xmas.api
         {
             log.LogInformation($"SetItem triggered calendar {calendar}, day {day}.");
 
-            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
-            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
-
             IActionResult checkResult = CheckDay(day);
             if (checkResult != null)
             {
                 return checkResult;
             }
 
-            checkResult = CheckCalendarAccess(blobContainer, req);
-            if (checkResult != null)
-            {
-                return checkResult;
-            }
-
-            checkResult = CheckContent(req);
-            if (checkResult != null)
-            {
-                return checkResult;
-            }
-
-            BlobClient blob = blobContainer.GetBlobClient(day.ToString());
-            if (blob.Exists())
-            {
-                return new BadRequestObjectResult($"Item {day} already exist");
-            }
-            else
-            {
-                log.LogInformation($"Request header content-type {req.ContentType}.");
-                var blobHttpHeaders = new BlobHttpHeaders();
-                blobHttpHeaders.ContentType = req.ContentType;
-                await blob.UploadAsync(req.Body, blobHttpHeaders); //, blobHttpHeaders);
-                try
-                {
-                    var tags = new Dictionary<string, string>
-                    {
-                        { "Created", DateTime.UtcNow.ToString() }
-                    };
-                    blob.SetTags(tags);
-                }
-                catch (Exception ex)
-                {
-                    return new OkObjectResult(ex.Message);
-                }
-
-                return new CreatedResult($"/calendar/{calendar}/item/{day}", day);
-            }
+            return await SetBlobContent(req, calendar, day.ToString(), false, log);
         }
 
         [FunctionName("UpdateItem")]
@@ -142,37 +130,14 @@ namespace de.softwaremess.xmas.api
             string calendar, int day, ILogger log)
         {
             log.LogInformation($"UpdateItem triggered calendar {calendar}, day {day}.");
+
             IActionResult checkResult = CheckDay(day);
             if (checkResult != null)
             {
                 return checkResult;
             }
 
-            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
-            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
-
-            checkResult = CheckCalendarAccess(blobContainer, req);
-            if (checkResult != null)
-            {
-                return checkResult;
-            }
-
-            checkResult = CheckContent(req);
-            if (checkResult != null)
-            {
-                return checkResult;
-            }
-
-            BlobClient blob = blobContainer.GetBlobClient(day.ToString());
-            if (!blob.Exists())
-            {
-                return new NotFoundObjectResult($"Item {day} does not exist");
-            }
-            else
-            {
-                await blob.UploadAsync(req.Body, overwrite: true);
-                return new OkObjectResult($"Updated");
-            }
+            return await SetBlobContent(req, calendar, day.ToString(), true, log);
         }
 
         [FunctionName("CreateCalendar")]
@@ -208,6 +173,48 @@ namespace de.softwaremess.xmas.api
             }
         }
 
+        [FunctionName("SetTitle")]
+        public static async Task<IActionResult> SetCalendarTitle(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}/title")] HttpRequest req,
+            // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
+            string calendar, ILogger log)
+        {
+            log.LogInformation($"SetTitle triggered calendar {calendar}.");
+            return await SetBlobContent(req, calendar, "title", false, log);
+        }
+
+        [FunctionName("UpdateTitle")]
+        public static async Task<IActionResult> UpdateCalendarTitle(
+            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "calendar/{calendar}/title")] HttpRequest req,
+            // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
+            string calendar, ILogger log)
+        {
+            log.LogInformation($"UpdateTitle triggered calendar {calendar}.");
+
+            return await SetBlobContent(req, calendar, "title", true, log);
+        }
+
+        [FunctionName("SetBackground")]
+        public static async Task<IActionResult> SetCalendarBackground(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}/background")] HttpRequest req,
+            // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
+            string calendar, ILogger log)
+        {
+            log.LogInformation($"SetBackground triggered calendar {calendar}.");
+            return await SetBlobContent(req, calendar, "background", false, log);
+        }
+
+        [FunctionName("UpdateBackground")]
+        public static async Task<IActionResult> UpdateCalendarBackground(
+            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "calendar/{calendar}/background")] HttpRequest req,
+            // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
+            string calendar, ILogger log)
+        {
+            log.LogInformation($"UpdateBackground triggered calendar {calendar}.");
+
+            return await SetBlobContent(req, calendar, "background", true, log);
+        }
+
         private static IActionResult CheckDay(int day)
         {
             if (day > 24 || day < 1)
@@ -218,18 +225,15 @@ namespace de.softwaremess.xmas.api
             return null;
         }
 
-        [FunctionName("SetTitle")]
-        public static async Task<IActionResult> SetCalendarTitle(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "calendar/{calendar}/title")] HttpRequest req,
-            // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
-            string calendar, ILogger log)
+        private static async Task<IActionResult> SetBlobContent(HttpRequest req, string blobContainerName, string blobName,
+             bool isUpdate, ILogger log)
         {
-            log.LogInformation($"SetTitle triggered calendar {calendar}.");
+            string username = req.Headers["username"];
 
             BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
-            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
+            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(blobContainerName);
 
-            IActionResult checkResult = CheckCalendarAccess(blobContainer, req);
+            IActionResult checkResult = CheckCalendarAccess(blobContainer, username);
             if (checkResult != null)
             {
                 return checkResult;
@@ -241,10 +245,10 @@ namespace de.softwaremess.xmas.api
                 return checkResult;
             }
 
-            BlobClient blob = blobContainer.GetBlobClient("title");
-            if (blob.Exists())
+            BlobClient blob = blobContainer.GetBlobClient(blobName);
+            if (blob.Exists() ^ isUpdate)
             {
-                return new BadRequestObjectResult($"Title already exist");
+                return new BadRequestObjectResult($"Resource {(isUpdate ? "does not" : "already")} exist {blobName}");
             }
             else
             {
@@ -264,43 +268,15 @@ namespace de.softwaremess.xmas.api
                 {
                     return new OkObjectResult(ex.Message);
                 }
-
-                return new CreatedResult($"/calendar/{calendar}/title", "title");
-            }
-        }
-
-        [FunctionName("UpdateTitle")]
-        public static async Task<IActionResult> UpdateCalendarTitle(
-            [HttpTrigger(AuthorizationLevel.Function, "put", Route = "calendar/{calendar}/title")] HttpRequest req,
-            // [Blob("{calendar}", FileAccess.Write)] BlobContainerClient blobContainer,
-            string calendar, ILogger log)
-        {
-            log.LogInformation($"UpdateTitle triggered calendar {calendar}.");
-            
-            BlobServiceClient blobServiceClient = new BlobServiceClient(connection);
-            BlobContainerClient blobContainer = blobServiceClient.GetBlobContainerClient(calendar);
-
-            IActionResult checkResult = CheckCalendarAccess(blobContainer, req);
-            if (checkResult != null)
-            {
-                return checkResult;
-            }
-
-            checkResult = CheckContent(req);
-            if (checkResult != null)
-            {
-                return checkResult;
-            }
-
-            BlobClient blob = blobContainer.GetBlobClient("title");
-            if (!blob.Exists())
-            {
-                return new NotFoundObjectResult($"Title does not exist");
-            }
-            else
-            {
-                await blob.UploadAsync(req.Body, overwrite: true);
-                return new OkObjectResult($"Updated");
+                
+                if(isUpdate)
+                {
+                    return new OkObjectResult($"Updated");
+                }
+                else
+                {
+                    return new CreatedResult(req.Path, blobName);
+                }
             }
         }
 
@@ -346,9 +322,8 @@ namespace de.softwaremess.xmas.api
             return null;
         }
 
-        private static IActionResult CheckCalendarAccess(BlobContainerClient blobContainer, HttpRequest req)
+        private static IActionResult CheckCalendarAccess(BlobContainerClient blobContainer, string username)
         {
-            string username = req.Headers["username"];
             if (username == null)
             {
                 return new UnauthorizedResult();
@@ -358,7 +333,7 @@ namespace de.softwaremess.xmas.api
                 return new NotFoundObjectResult($"Calendar does not exist");
             }
             string owner = blobContainer.GetProperties().Value.Metadata["Owner"];
-            if (!owner.Equals(req.Headers["username"]))
+            if (!owner.Equals(username))
             {
                 //No access to calendar. Handle like non existent calendar.
                 return new NotFoundObjectResult($"Calendar does not exist"); //new ObjectResult("Forbidden") {StatusCode = StatusCodes.Status403Forbidden };
